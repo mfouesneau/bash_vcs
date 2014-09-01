@@ -1,13 +1,40 @@
 #!/bin/bash
+#
+# Versioning system control in your bash prompt
+# =============================================
+# 
+# This script add a tag to your prompt informing you when you enter a vcs
+# repository folder.
+# 
+# It works with git svn bzr and hg backends.
+# 
+# Installation
+# ------------
+# 
+# Copy the `bash_vcs` into your home directory `~/.bash_vcs`
+# and add the following snippet to your `.bashrc`
+# 
+# ```shell
+# # Include git svn bzr tree detection
+# if [ -f ~/.bash_vcs ]; then
+#     . ~/.bash_vcs
+# fi
+# ```
 
 # configuration
+# -------------
+# Find default versioning commands install in the system
+# And define the default behavior (mainly to find root of repositories)
 BASH_VCS_BZR=`which bzr 2>/dev/null`
 BASH_VCS_GIT=`which git 2>/dev/null`
 BASH_VCS_SVN=`which svn 2>/dev/null`
 BASH_VCS_HG=`which hg 2>/dev/null`
 
 function bash_vcs_set_default_mode() {
-# set default priority to the VCS commands if multiple are available
+# set default priority to the VCS commands if multiple are available and returns
+# the highest priority command found in the system
+#
+# Returns the ${BASH_VCS_DEFAULT_MODE}
 	BASH_VCS_DEFAULT_MODE=''
 	if [ -n BASH_VCS_BZR ]; then
 		BASH_VCS_DEFAULT_MODE='bzr'
@@ -27,7 +54,13 @@ BASH_VCS_DEFAULT_MODE=$(bash_vcs_set_default_mode)
 
 
 function bash_vcs_get_root_info() {
-# find ROOT directory of the repository
+# find ROOT directory of the repository by using the `BASH_VCS_DEFAULT_MODE`
+# command. 
+# Robustness was added to this function by going down the command priority list
+# until no error is returned (e.g. sometimes with new version bzr cannot nicely
+# play with git)
+#
+# Returns the ${BASH_VCS_DEFAULT_MODE} ${ROOTDIR}
 
 	#find ROOT directory
 	ROOT="${PWD}"
@@ -66,12 +99,15 @@ function bash_vcs_get_root_info() {
 
 		if [ $ERROR ]; then
 			ROOT="${PWD}"
-			BASH_VCS_DEFAULT_MODE='None'
+			BASH_VCS_DEFAULT_MODE=''
 		fi
 	fi
 
 	echo -en "$BASH_VCS_DEFAULT_MODE ${ROOT}"
 }
+
+# Individual VCS command info parsing tools
+# -----------------------------------------
 
 function bash_vcs_get_currenttype(){
 # returns the current type mode to use that is the most appropriate with the
@@ -179,35 +215,48 @@ function csv_info(){
 }
 
 
+# Shell tools and Bash prompt integration
+# ---------------------------------------
+
 scm_info() {
 #
 # Call the adapted version control command to retrieve the
 # information and returns a corresponding color coded string
 #
+# returns ${info}
 	case $(bash_vcs_get_currenttype) in 
 
 		bzr)
-			info=$(bzr_info)
+			echo -en $(bzr_info)
 			;;
 		git)
-			info=$(git_info)
+			echo -en $(git_info)
 			;;
 		svn)
-			info=$(svn_info)
+			echo -en $(svn_info)
 			;;
 		csv)
-			info=$(csv_info)	
+			echo -en $(csv_info)	
+			;;
+		*)
+			echo -en ''
 			;;
 	esac
-
-	echo -en ${info}
 }
 
 root_info() { 
-	# get ROOT and type robustly
+# get ROOT and type robustly (used in the prompt)
+#
+# returns ${ROOT} 
 	IFS=' ' read -ra ret <<< $(bash_vcs_get_root_info)
 	#for k in ${ret[@]}; do echo $k;done
-	echo -en ${ret[1]}
+	if [ -z ${ret[1]} ]; then
+		echo -en ""
+	else
+		echo -en " ${ret[1]}\n"
+	fi
 }
 
-PS1='\[$(scm_info)\] $(root_info)\n'"${PS1}"
+#integrate: strong quotes to make the evaluation of the functions at every
+# call
+PS1='$(scm_info)$(root_info)\n'"${PS1}"
