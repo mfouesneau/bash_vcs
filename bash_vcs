@@ -169,16 +169,16 @@ function git_info(){
 
 		if [ "${git_remote_info}" ]; then
 			ncomits=`echo "${git_remote_info}" | wc -l`
-			echo -e "\n \033[1;33mOutdated branch.\033[0m  ${ncomits} commits behind."
-			echo "${git_remote_info}"
-			echo ''
+			echo "\n\033[1;33mOutdated branch.\033[0m ${ncomits} commits behind.\n"
+			echo "${git_remote_info}\n"
+			echo '\n'
 		fi
 
 		if [ "${git_local_info}" ]; then
 			ncomits=`echo "${git_remote_info}" | wc -l`
-			echo -e "\n \033[1;33mAdvanced branch.\033[0m  ${ncomits} commits to push."
-			echo "${git_local_info}"
-			echo ''
+			echo "\n\033[1;33mAdvanced branch.\033[0m ${ncomits} commits to push.\n"
+			echo "${git_local_info}\n"
+			echo '\n'
 		fi
 
 		info="${git_color}[ git:(${info}):${revno} ]\033[0m "
